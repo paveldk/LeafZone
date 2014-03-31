@@ -1,3 +1,4 @@
 [submodule "mobile"]
 	path = mobile
-	url = https://github.com/paveldk/leafzone-mobile
+	url = https://github.com/paveldk/leafzone-mobile.git
+	branch = origin/master
