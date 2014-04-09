@@ -15,6 +15,8 @@ namespace TestImageEdgeRecognition
 
         private Image<Bgr, Byte> Image { get; set; }
 
+        private Image<Bgr, Byte> ImageMarked { get; set; }
+
         private Image<Gray, Byte> GrayscaleImage { get; set; }
 
         public Contour<Point> Contours { get; set; }
@@ -22,6 +24,19 @@ namespace TestImageEdgeRecognition
         public MainForm()
         {
             this.InitializeComponent();
+        }
+
+        private void SetInitialScrollbarValues()
+        {
+            Gray averageIntensity = this.GrayscaleImage.GetAverage();
+
+            this.trackBarThreshold.Value = (int)(averageIntensity.Intensity * .66);
+            this.trackBarThresholdLinking.Value = (int)(averageIntensity.Intensity * 1.33);
+        }
+
+        private void initialTransformations()
+        {
+            this.GrayscaleImage.Erode(1);
         }
 
         private void loadImageButton_Click(object sender, EventArgs e)
@@ -33,19 +48,11 @@ namespace TestImageEdgeRecognition
 
                 this.ImageOriginal = new Image<Bgr, byte>(this.fileNameTextBox.Text);
 
-
-              //  this.ImageOriginal.SmoothBlur();
-                //this.ImageOriginal._EqualizeHist();
-                //this.ImageOriginal._GammaCorrect(1.8d);
-                this.ImageOriginal.Erode(1);
-                //this.ImageOriginal.Dilate(1);
-
                 this.GrayscaleImage = this.ImageOriginal.Convert<Gray, Byte>();
 
-                Gray averageIntensity = this.GrayscaleImage.GetAverage();
+                this.GrayscaleImage.Erode(1);
 
-                this.trackBarThreshold.Value = (int)(averageIntensity.Intensity * .66);
-                this.trackBarThresholdLinking.Value = (int)(averageIntensity.Intensity * 1.33);
+                this.SetInitialScrollbarValues();
 
                 this.textBox1.Text = "";
                 this.UpdateTackBarValues();
@@ -59,7 +66,7 @@ namespace TestImageEdgeRecognition
             this.labelThresholdLinkingValue.Text = this.trackBarThresholdLinking.Value.ToString();
         }
 
-        public void PerformEdgeDetection()
+        public Image<Gray, Byte> GetContoursHard()
         {
             Image<Gray, Byte> cannyEdges = this.GrayscaleImage.Canny(this.trackBarThreshold.Value, this.trackBarThresholdLinking.Value);
 
@@ -67,44 +74,52 @@ namespace TestImageEdgeRecognition
 
             CvInvoke.cvMorphologyEx(cannyEdges, cannyEdges, IntPtr.Zero, element, CV_MORPH_OP.CV_MOP_GRADIENT, 1);
 
-            this.Image = this.ImageOriginal.Copy();
-            this.imageBoxOriginal.Image = this.Image;
-            //this.imageBoxEdges.Image = cannyEdges;
+            this.Contours = cannyEdges.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_EXTERNAL);
+
+            return cannyEdges;
+        }
+
+        public Image<Gray, Byte> GetContours()
+        {
+            Image<Gray, Byte> cannyEdges = this.GrayscaleImage.Canny(this.trackBarThreshold.Value, this.trackBarThresholdLinking.Value);
 
             this.Contours = cannyEdges.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_EXTERNAL);
 
-            //make sure all contours are on
-            //var ContoursCount = this.CountContour();
-            //for (int i = 0; i < ContoursCount; i++)
-            //{
-            //    this.DrawContour();
-            //}
+            return cannyEdges;
+        }
 
-            //this.Image.Erode(1);
-            //Image<Gray, Byte> resultImageWithContour = this.Image.Convert<Gray, Byte>();
-            //Image<Gray, Byte> resultContour = resultImageWithContour.Canny(this.trackBarThreshold.Value, this.trackBarThresholdLinking.Value);
+        public void SetSolidContours()
+        {
+            this.ImageMarked = this.GrayscaleImage.Convert<Bgr, Byte>();
 
-            //this.Contours = resultContour.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_EXTERNAL);
-            //this.imageBoxEdges.Image = resultContour;
+            this.DrawSolidContour();
+
+            this.GrayscaleImage = this.ImageMarked.Convert<Gray, Byte>();
+        }
+
+        public void PerformEdgeDetection()
+        {
+            this.GrayscaleImage = this.GetContoursHard();
+
+            this.SetSolidContours();
+
+            this.imageBoxEdges.Image = this.GrayscaleImage;
+
+            this.Image = this.ImageOriginal.Copy();
+            CvInvoke.cvAddWeighted(this.Image, 1, this.ImageMarked, 0.5, 0, this.Image);
+
+            this.imageBoxOriginal.Image = this.Image;
         }
 
         private void trackBarThreshold_Scroll(object sender, EventArgs e)
         {
             this.UpdateTackBarValues();
-            //this.PerformEdgeDetection();
+            this.PerformEdgeDetection();
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if (this.Contours == null)
-            {
-                return;
-            }
-
-            this.Image.Draw(this.Contours, new Bgr(Color.Red), -1);
-            this.textBox1.Text += "Area: " + this.Contours.Area + " Perimeter: " + this.Contours.Perimeter + Environment.NewLine;
-            this.imageBoxOriginal.Refresh();
-            this.Contours = this.Contours.HNext;
+            this.DrawContour();
         }
 
         private int CountContour()
@@ -124,12 +139,45 @@ namespace TestImageEdgeRecognition
             return counter;
         }
 
+        private void DrawSolidContour()
+        {
+            if (this.Contours == null)
+            {
+                return;
+            }
+
+            if (this.Contours.Perimeter > 100d)
+            {
+                this.ImageMarked.Draw(this.Contours, new Bgr(0, 0, 255), -1);
+                this.Contours = this.Contours.HNext;
+            }
+            else
+            {
+                this.Contours = this.Contours.HNext;
+                this.DrawSolidContour();
+            }
+        }
+
         private void DrawContour()
         {
-            this.Image.Draw(this.Contours, new Bgr(Color.Red), -1);
-            this.textBox1.Text += "Area: " + this.Contours.Area + " Perimeter: " + this.Contours.Perimeter + Environment.NewLine;
-            this.imageBoxOriginal.Refresh();
-            this.Contours = this.Contours.HNext;
+            if (this.Contours == null)
+            {
+                return;
+            }
+
+            if(this.Contours.Perimeter > 100d)
+            {
+                this.Image.Draw(this.Contours, new Bgr(0, 0, 255), -1);
+                this.textBox1.Text += "Area: " + this.Contours.Area + " Perimeter: " + this.Contours.Perimeter + Environment.NewLine;
+                this.imageBoxOriginal.Refresh();
+                this.Contours = this.Contours.HNext;
+            } 
+            else
+            {
+                this.Contours = this.Contours.HNext;
+                this.DrawContour();
+            }
+
         }
     }
 }
