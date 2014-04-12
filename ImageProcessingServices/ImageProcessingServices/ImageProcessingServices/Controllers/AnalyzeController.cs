@@ -20,13 +20,18 @@ namespace ImageProcessingServices.Controllers
         {
             if(obj.ImageBase64 != null)
             {
-                string converted = obj.ImageBase64.Remove(0, 22);
+                //string converted = obj.ImageBase64.Remove(0, 23);
 
-                Bitmap leafImage = MyHelpers.Base64StringToBitmap(converted);
+                Bitmap leafImage = MyHelpers.Base64StringToBitmap(obj.ImageBase64);
                 var path = Path.Combine(HttpContext.Current.Server.MapPath(IMAGES_LOCATION), obj.ImageName);
 
                 path = path + ".bmp";
-                leafImage.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
+                //leafImage.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
+
+                using (Bitmap tempImage = new Bitmap(leafImage))
+                {
+                    tempImage.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
+                }   
 
                 MyHelpers.ResizeImage(path, path, 900, 580, true);
 

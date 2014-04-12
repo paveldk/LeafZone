@@ -19,7 +19,7 @@
             ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0);
 
-            path = canvas.toDataURL("image/png|gif|jpg");
+            path = canvas.toDataURL("image/jpeg");
 
             $("#upload").on("click", function () {
                 var data = {
