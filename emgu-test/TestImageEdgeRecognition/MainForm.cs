@@ -146,7 +146,7 @@ namespace TestImageEdgeRecognition
                 return;
             }
 
-            if (this.Contours.Perimeter > 100d)
+            if (this.Contours.Perimeter > 1000d)
             {
                 this.ImageMarked.Draw(this.Contours, new Bgr(0, 0, 255), -1);
                 this.Contours = this.Contours.HNext;
@@ -165,7 +165,7 @@ namespace TestImageEdgeRecognition
                 return;
             }
 
-            if(this.Contours.Perimeter > 100d)
+            if(this.Contours.Perimeter > 1000d)
             {
                 this.Image.Draw(this.Contours, new Bgr(0, 0, 255), -1);
                 this.textBox1.Text += "Area: " + this.Contours.Area + " Perimeter: " + this.Contours.Perimeter + Environment.NewLine;
