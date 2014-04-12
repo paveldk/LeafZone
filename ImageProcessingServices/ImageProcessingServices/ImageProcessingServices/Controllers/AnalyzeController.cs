@@ -16,26 +16,31 @@ namespace ImageProcessingServices.Controllers
     {
         private readonly string IMAGES_LOCATION = "Images";
 
+        public string Get()
+        {
+            return "Services up and running";
+        }
+
         public AnalyzeResultModel Post(AnalyzeModel obj)
         {
             if(obj.ImageBase64 != null)
             {
-                //string converted = obj.ImageBase64.Remove(0, 23);
+                string imagePath = "http://leafzoneservices.keydown.org/api/Images/" + obj.ImageName + "-analyzed.bmp";
 
-                Bitmap leafImage = MyHelpers.Base64StringToBitmap(obj.ImageBase64);
-                var path = Path.Combine(HttpContext.Current.Server.MapPath(IMAGES_LOCATION), obj.ImageName);
+                string converted = obj.ImageBase64.Remove(0, 23);
 
-                path = path + ".bmp";
-                //leafImage.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
+                Bitmap leafImage = MyHelpers.Base64StringToBitmap(converted);
+                var path = Path.Combine(HttpContext.Current.Server.MapPath(IMAGES_LOCATION), obj.ImageName) + ".bmp";
 
                 using (Bitmap tempImage = new Bitmap(leafImage))
                 {
                     tempImage.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
                 }   
 
-                MyHelpers.ResizeImage(path, path, 900, 580, true);
+                MyHelpers.ResizeImage(path, path, 800, 600, true);
 
-                string imagePath = "http://leafzoneservices.keydown.org/api/Images/" + obj.ImageName + ".bmp";
+                ImageAnalyzer analyzedImage = new ImageAnalyzer();
+                analyzedImage.CreateImageContours(path);
 
                 AnalyzeResultModel result = new AnalyzeResultModel(imagePath, "Unknown", "Unknown", 75d);
 
@@ -43,11 +48,6 @@ namespace ImageProcessingServices.Controllers
             }
 
             return new AnalyzeResultModel();
-        }
-
-        public string Get()
-        {
-            return Path.Combine(HttpContext.Current.Server.MapPath(IMAGES_LOCATION), "penko.jpg");
         }
     }
 }
