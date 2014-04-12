@@ -1,0 +1,42 @@
+﻿<div id="body">
+    <img src="Images/gosho.jpg" id="myImage" />
+    <button id="upload">Upload</button>
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script>
+        var path = "";
+
+        $(document).ready(function () {
+            var ctx,
+                canvas,
+                img = new Image();
+
+            img.src = $("#myImage").attr("src");
+
+            canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+
+            path = canvas.toDataURL("image/png|gif|jpg");
+
+            $("#upload").on("click", function () {
+                var data = {
+                    ImageName: "gosho1237",
+                    ImageBase64: path
+                };
+
+                $.ajax({
+                    type: "POST",
+                    url: "http://localhost:58134/api/analyze",
+                    data: data,
+                    success: function (result) {
+                        var a = result;
+                        debugger;
+                    }
+                });
+            });
+        });
+    </script>
+</div>
