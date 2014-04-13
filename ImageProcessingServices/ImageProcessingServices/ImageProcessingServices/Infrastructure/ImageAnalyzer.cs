@@ -18,6 +18,8 @@ namespace ImageProcessingServices.Infrastructure
 
         private Image<Bgr, Byte> ImageMarked { get; set; }
 
+        private Image<Bgr, Byte> ImageMarkedContour { get; set; }
+
         private Image<Gray, Byte> GrayscaleImage { get; set; }
 
         public Contour<Point> Contours { get; set; }
@@ -27,17 +29,67 @@ namespace ImageProcessingServices.Infrastructure
 
         public string ImageAnalyzedPath { get; set; }
 
+        private Image<Gray, Byte> ImagePlantDisease { get; set; }
+        public Contour<Point> DiseaseContours { get; set; }
+        public int DiseaseCount { get; set; }
+
+        private Image<Gray, Byte> ImageOzone { get; set; }
+        public Contour<Point> OzoneContours { get; set; }
+        public int OzoneArea { get; set; }
+
         public ImageAnalyzer()
         {
 
         }
 
-        private void SetInitialScrollbarValues()
+        private void SetInitialTruesholdValues()
         {
             Gray averageIntensity = this.GrayscaleImage.GetAverage();
 
             this.trackBarThresholdValue = (int)(averageIntensity.Intensity * .66);
             this.trackBarThresholdLinkingValue = (int)(averageIntensity.Intensity * 1.33);
+        }
+
+        public double GetOzonePercentage()
+        {
+            int imageArea = (int)(this.ImageOzone.Height * this.ImageOzone.Width);
+            return 100 * this.OzoneArea / imageArea;
+        }
+
+        private void CountOzoneArea()
+        {
+            if (this.OzoneContours == null)
+            {
+                return;
+            }
+
+            this.OzoneArea += (int)this.OzoneContours.Area;
+
+            this.OzoneContours = this.OzoneContours.HNext;
+            this.CountOzoneArea();
+        }
+
+        private void CountPlantDiseaseArea()
+        {
+            if (this.DiseaseContours == null)
+            {
+                return;
+            }
+
+            this.DiseaseCount += (int)this.DiseaseContours.Area;
+
+            this.DiseaseContours = this.DiseaseContours.HNext;
+            this.CountPlantDiseaseArea();
+        }
+
+        public string PlantDisease()
+        {
+            if(this.DiseaseCount < 10000 && this.DiseaseCount > 500)
+            {
+                return "Pseudomonas syringae";
+            }
+                
+            return "Unknown";
         }
 
         private void initialTransformations()
@@ -47,15 +99,15 @@ namespace ImageProcessingServices.Infrastructure
 
         public void CreateImageContours(string path)
         {
-            this.ImageOriginal = new Image<Bgr, byte>("C:\\Users\\paveldk\\Downloads\\lrecog1_0-cfg\\1.jpg");
+            this.ImageOriginal = new Image<Bgr, byte>(path);
 
-            this.ImageAnalyzedPath = path.Remove(path.Length - 4, 4) + "-analyzed.bmp";
+            this.ImageAnalyzedPath = path.Remove(path.Length - 4, 4) + "-analyzed.jpg";
 
             this.GrayscaleImage = this.ImageOriginal.Convert<Gray, Byte>();
 
             this.GrayscaleImage.Erode(1);
 
-            this.SetInitialScrollbarValues();
+            this.SetInitialTruesholdValues();
 
             this.PerformEdgeDetection();
         }
@@ -98,7 +150,16 @@ namespace ImageProcessingServices.Infrastructure
             this.SetSolidContours();
 
             this.Image = this.ImageOriginal.Copy();
-            CvInvoke.cvAddWeighted(this.Image, 1, this.ImageMarked, 0.3, 0, this.Image);
+            this.ImageOzone = this.Image.InRange(new Bgr(90, 113, 115), new Bgr(113, 162, 250));
+            this.ImagePlantDisease = this.Image.InRange(new Bgr(41, 25, 0), new Bgr(255, 140, 255));
+
+            CvInvoke.cvAddWeighted(this.Image, 1, this.ImageMarked, 0.6, 0, this.Image);
+            CvInvoke.cvAddWeighted(this.Image, 1, this.ImageMarkedContour, 0.7, 0, this.Image);
+
+            this.OzoneContours = this.ImageOzone.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_EXTERNAL);
+            this.DiseaseContours = this.ImagePlantDisease.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_EXTERNAL);
+            this.CountOzoneArea();
+            this.CountPlantDiseaseArea();
 
             this.Image.Save(this.ImageAnalyzedPath);
         }
@@ -112,7 +173,10 @@ namespace ImageProcessingServices.Infrastructure
 
             if (this.Contours.Perimeter > 1000d)
             {
-                this.ImageMarked.Draw(this.Contours, new Bgr(0, 0, 255), -1);
+                this.ImageMarked.Draw(this.Contours, new Bgr(100, 100, 255), 10);
+
+                this.ImageMarkedContour = new Image<Bgr, Byte>(this.ImageMarked.Bitmap);
+                this.ImageMarkedContour.Draw(this.Contours, new Bgr(0, 0, 255), -1);
                 this.Contours = this.Contours.HNext;
             }
             else
@@ -120,26 +184,6 @@ namespace ImageProcessingServices.Infrastructure
                 this.Contours = this.Contours.HNext;
                 this.DrawSolidContour();
             }
-        }
-
-        private void DrawContour()
-        {
-            if (this.Contours == null)
-            {
-                return;
-            }
-
-            if(this.Contours.Perimeter > 1000d)
-            {
-                this.Image.Draw(this.Contours, new Bgr(0, 0, 255), -1);
-                this.Contours = this.Contours.HNext;
-            } 
-            else
-            {
-                this.Contours = this.Contours.HNext;
-                this.DrawContour();
-            }
-
         }
     }
 }
