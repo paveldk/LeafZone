@@ -12,6 +12,7 @@ namespace TestImageEdgeRecognition
     public partial class MainForm : Form
     {
         private Image<Bgr, Byte> ImageOriginal { get; set; }
+        private Image<Gray, Byte> TestImage { get; set; }
 
         private Image<Bgr, Byte> Image { get; set; }
 
@@ -19,7 +20,12 @@ namespace TestImageEdgeRecognition
 
         private Image<Gray, Byte> GrayscaleImage { get; set; }
 
+        private Image<Gray, Byte> ImageOzone { get; set; }
+
         public Contour<Point> Contours { get; set; }
+
+        public Contour<Point> OzoneContours { get; set; }
+        public int OzoneArea { get; set; }
 
         public MainForm()
         {
@@ -45,6 +51,8 @@ namespace TestImageEdgeRecognition
             if (result == DialogResult.OK || result == DialogResult.Yes)
             {
                 this.fileNameTextBox.Text = this.openFileDialog1.FileName;
+
+                this.OzoneArea = 0;
 
                 this.ImageOriginal = new Image<Bgr, byte>(this.fileNameTextBox.Text);
 
@@ -106,15 +114,36 @@ namespace TestImageEdgeRecognition
             this.imageBoxEdges.Image = this.GrayscaleImage;
 
             this.Image = this.ImageOriginal.Copy();
-            CvInvoke.cvAddWeighted(this.Image, 1, this.ImageMarked, 0.5, 0, this.Image);
+            //CvInvoke.cvAddWeighted(this.Image, 1, this.ImageMarked, 0.5, 0, this.Image);
 
-            this.imageBoxOriginal.Image = this.Image;
+            this.ImageOzone = this.Image.InRange(new Bgr(90, 113, 115), new Bgr(113, 162, 250));
+
+            this.OzoneContours = this.ImageOzone.FindContours(Emgu.CV.CvEnum.CHAIN_APPROX_METHOD.CV_CHAIN_APPROX_SIMPLE, Emgu.CV.CvEnum.RETR_TYPE.CV_RETR_EXTERNAL);
+            this.CountOzoneArea();
+
+            int imageArea = (int)(this.ImageOzone.Height * this.ImageOzone.Width);
+            this.textBox1.Text = this.OzoneArea.ToString() + " / " + imageArea + " = " + (100 * this.OzoneArea / imageArea).ToString();
+
+            this.imageBoxEdges.Image = this.ImageOriginal;
+            this.imageBoxOriginal.Image = this.ImageOriginal;
         }
 
         private void trackBarThreshold_Scroll(object sender, EventArgs e)
         {
             this.UpdateTackBarValues();
             this.PerformEdgeDetection();
+        }
+
+        private void colorsChange(object sender, EventArgs e)
+        {
+            this.UpdateDiseaseDetection();
+        }
+
+        private void UpdateDiseaseDetection()
+        {
+            this.TestImage = this.ImageOriginal.InRange(new Bgr(bMin.Value, gMin.Value, rMin.Value), new Bgr(bMax.Value, gMax.Value, rMax.Value));
+
+            this.imageBoxEdges.Image = this.TestImage;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -149,6 +178,7 @@ namespace TestImageEdgeRecognition
             if (this.Contours.Perimeter > 1000d)
             {
                 this.ImageMarked.Draw(this.Contours, new Bgr(0, 0, 255), -1);
+                this.textBox1.Text += "Area: " + this.Contours.Area + " Perimeter: " + this.Contours.Perimeter + Environment.NewLine;
                 this.Contours = this.Contours.HNext;
             }
             else
@@ -156,6 +186,20 @@ namespace TestImageEdgeRecognition
                 this.Contours = this.Contours.HNext;
                 this.DrawSolidContour();
             }
+        }
+
+        private void CountOzoneArea()
+        {
+            if (this.OzoneContours == null)
+            {
+                return;
+            }
+
+            this.OzoneArea += (int)this.OzoneContours.Area;
+            this.ImageOriginal.Draw(this.OzoneContours, new Bgr(0, 0, 255), -1);
+
+            this.OzoneContours = this.OzoneContours.HNext;
+            this.CountOzoneArea();
         }
 
         private void DrawContour()

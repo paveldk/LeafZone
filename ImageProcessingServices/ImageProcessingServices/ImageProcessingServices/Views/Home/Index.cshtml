@@ -1,5 +1,5 @@
 ﻿<div id="body">
-    <img src="Images/gosho.jpg" id="myImage" />
+    <img src="~/Images/goshe.jpg" id="myImage" />
     <button id="upload">Upload</button>
     <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
     <script>
@@ -22,6 +22,7 @@
             path = canvas.toDataURL("image/jpeg");
 
             $("#upload").on("click", function () {
+                path = path.substring(23, path.length);
                 var data = {
                     ImageName: "gosho1237",
                     ImageBase64: path
