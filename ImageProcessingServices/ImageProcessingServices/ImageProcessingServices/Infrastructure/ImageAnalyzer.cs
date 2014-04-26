@@ -10,8 +10,13 @@ using System.Drawing;
 
 namespace ImageProcessingServices.Infrastructure
 {
+    /// <summary>
+    /// Class for analyzing the Image. It detects the contours, gets the area and finds the ozone affection of a plant.
+    /// </summary>
     public  class ImageAnalyzer
     {
+
+        #region Properties
         private Image<Bgr, Byte> ImageOriginal { get; set; }
 
         private Image<Bgr, Byte> Image { get; set; }
@@ -36,13 +41,17 @@ namespace ImageProcessingServices.Infrastructure
         private Image<Gray, Byte> ImageOzone { get; set; }
         public Contour<Point> OzoneContours { get; set; }
         public int OzoneArea { get; set; }
+        #endregion
 
+        #region Constructor
         public ImageAnalyzer()
         {
 
         }
+        #endregion
 
-        private void SetInitialTruesholdValues()
+        #region Methods
+        private void SetInitialTresholdValues()
         {
             Gray averageIntensity = this.GrayscaleImage.GetAverage();
 
@@ -92,7 +101,7 @@ namespace ImageProcessingServices.Infrastructure
             return "Unknown";
         }
 
-        private void initialTransformations()
+        private void DoInitialTransformations()
         {
             this.GrayscaleImage.Erode(1);
         }
@@ -107,7 +116,7 @@ namespace ImageProcessingServices.Infrastructure
 
             this.GrayscaleImage.Erode(1);
 
-            this.SetInitialTruesholdValues();
+            this.SetInitialTresholdValues();
 
             this.PerformEdgeDetection();
         }
@@ -185,5 +194,7 @@ namespace ImageProcessingServices.Infrastructure
                 this.DrawSolidContour();
             }
         }
+#endregion
+
     }
 }

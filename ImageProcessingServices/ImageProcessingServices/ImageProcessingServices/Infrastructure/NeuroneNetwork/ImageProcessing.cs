@@ -6,65 +6,58 @@ using System.Web;
 
 namespace ImageProcessingServices.Infrastructure.NeuroneNetwork
 {
-    class ImageProcessing
+    /// <summary>
+    /// Helper class for image processing. It generates a matrix of the features of a bitmap file or scales an image.
+    /// </summary>
+    public class ImageProcessing
     {
-        //Convert RGB To Matrix [Of Double]
-        public static double[] ToMatrix(Bitmap BM, int MatrixRowNumber, int MatrixColumnNumber)
+        /// <summary>
+        /// Converts an RGB bitmap to a Matrix
+        /// </summary>
+        /// <param name="bitmap">Image to be mapped to a matrix</param>
+        /// <param name="matrixRowCount">Row count of the matrix</param>
+        /// <param name="matrixColumnCount">Column count of the matrix</param>
+        /// <returns>Matrix with mapped features of a bitmap pixels to matrix elements</returns>
+        public static double[] ToMatrix(Bitmap bitmap, int matrixRowCount, int matrixColumnCount)
         {
-            double HRate = ((Double)MatrixRowNumber / BM.Height);
-            double WRate = ((Double)MatrixColumnNumber / BM.Width);
-            double[] Result = new double[MatrixColumnNumber * MatrixRowNumber];
+            double HRate = ((Double)matrixRowCount / bitmap.Height);
+            double WRate = ((Double)matrixColumnCount / bitmap.Width);
+            double[] Result = new double[matrixColumnCount * matrixRowCount];
 
-            for (int r = 0; r < MatrixRowNumber; r++)
+            for (int r = 0; r < matrixRowCount; r++)
             {
-                for (int c = 0; c < MatrixColumnNumber; c++)
+                for (int c = 0; c < matrixColumnCount; c++)
                 {
-                    Color color = BM.GetPixel((int)(c / WRate), (int)(r / HRate));
-                    Result[r * MatrixColumnNumber + c] = 1 - (color.R * .3 + color.G * .59 + color.B * .11) / 255;
+                    Color color = bitmap.GetPixel((int)(c / WRate), (int)(r / HRate));
+                    Result[r * matrixColumnCount + c] = 1 - (color.R * .3 + color.G * .59 + color.B * .11) / 255;
                 }
             }
             return Result;
         }
 
-        //Convert Double To Grey Level  
-        public static Bitmap ToImage(double[] Matrix, int MatrixRowNumber, int MatrixColumnNumber,
-                                                     int ImageHeight, int ImageWidth)
+        /// <summary>
+        /// Rescaling of a bitmap image.
+        /// </summary>
+        /// <param name="bitmap">Image to rescale</param>
+        /// <param name="newHeight">Height of the new image</param>
+        /// <param name="newWidth">Width of the new image</param>
+        /// <returns>The rescaled bitmap</returns>
+        public static Bitmap ScaleImage(Bitmap bitmap, int newHeight, int newWidth)
         {
-            double HRate = ((double)ImageHeight / MatrixRowNumber);
-            double WRate = ((double)ImageWidth / MatrixColumnNumber);
-            Bitmap Result = new Bitmap(ImageWidth, ImageHeight);
-
-            for (int i = 0; i < ImageHeight; i++)
+            double HRate = (double)bitmap.Height / newHeight;
+            double WRate = (double)bitmap.Width / newWidth;
+            Bitmap Result = new Bitmap(newWidth, newHeight);
+            for (int i = 0; i < newHeight; i++)
             {
-                for (int j = 0; j < ImageWidth; j++)
+                for (int j = 0; j < newWidth; j++)
                 {
-                    int x = (int)((double)j / WRate);
-                    int y = (int)((double)i / HRate);
-
-                    double temp = Matrix[y * MatrixColumnNumber + x];
-                    Result.SetPixel(j, i, Color.FromArgb((int)((1 - temp) * 255), (int)((1 - temp) * 255), (int)((1 - temp) * 255)));
-
+                    int x = (int)((double)j * WRate);
+                    int y = (int)((double)i * HRate);
+                    Result.SetPixel(j, i, bitmap.GetPixel(x, y));
                 }
             }
+
             return Result;
         }
-
-        //public static Bitmap Scale(Bitmap Input, int newHeight, int newWidth)
-        //{
-        //    double HRate = (double)Input.Height / newHeight;
-        //    double WRate = (double)Input.Width / newWidth;
-        //    Bitmap Result = new Bitmap(newWidth, newHeight);
-        //    for (int i = 0; i < newHeight; i++)
-        //    {
-        //        for (int j = 0; j < newWidth; j++)
-        //        {
-        //            int x = (int)((double)j * WRate);
-        //            int y = (int)((double)i * HRate);
-        //            Result.SetPixel(j, i, Input.GetPixel(x, y));
-        //        }
-        //    }
-
-        //    return Result;
-        //}
     }
 }
