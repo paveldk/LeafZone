@@ -1,5 +1,6 @@
 {
   "CorePlugins": [
+    "com.telerik.LivePatch",
     "org.apache.cordova.battery-status",
     "org.apache.cordova.camera",
     "org.apache.cordova.contacts",
